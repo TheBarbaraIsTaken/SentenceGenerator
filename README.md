@@ -1,0 +1,2 @@
+# SentenceGenerator
+University project
