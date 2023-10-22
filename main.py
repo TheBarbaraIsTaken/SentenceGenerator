@@ -1,4 +1,7 @@
 from model import Predicter
+from website import create_app
+
+app = create_app()
 
 if __name__ == "__main__":
     sentences = """
@@ -13,4 +16,8 @@ if __name__ == "__main__":
 
     model = Predicter(sentences)
 
-    print(model.pred_sent(feature))
+    # print(model.pred_sent(feature))
+
+    app.run(debug=True)
+
+
