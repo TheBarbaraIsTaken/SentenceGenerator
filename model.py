@@ -1,3 +1,4 @@
+# Import libraries
 import spacy
 from nltk.tokenize import sent_tokenize
 from nltk.corpus import stopwords
@@ -5,18 +6,20 @@ from nltk.stem import PorterStemmer
 from collections import Counter
 import numpy as np
 
+# Defining a class Tagger with functions to POS tag the corpus
 class Tagger:
+    # pre processing the corpus (put letters into lower case and get tokens)
     def __init__(self, text):
         self.text = text.lower()
         self.sentences = sent_tokenize(self.text)
-
+        # remove stopwords
         self.nlp = spacy.load('en_core_web_sm')
         # nltk.download('stopwords')
         self.docs = [self.nlp(sentence) for sentence in self.sentences]
 
-        ## Full vocabulary with fequences
+        # Full vocabulary with frequences
         self.vocab = self.__get_vocab(stem=False) 
-
+    # create a stemmed vocabulary list and return the number of words in it
     def __get_vocab(self, stem=True):
         words = [(token.text, token.pos_) for doc in self.docs for token in doc if token.pos_ != 'SPACE' and token.pos_ != 'PUNCT']
 
@@ -25,7 +28,7 @@ class Tagger:
             words = [(ps.stem(w), t) for w, t in words]
 
         return Counter(words)
-
+    # get the POS tag for a token
     def __get_sent_part(self, tag):
         return [(token.text, token.pos_) for doc in self.docs for token in doc if tag in token.dep_]
     
@@ -39,19 +42,19 @@ class Tagger:
 
         return [get_subtree_list(token, doc) for doc in self.docs for token in doc if tag in token.dep_]
 
-
+    # get the subjects
     def get_subjects(self):
         return self.__get_sent_part("subj")
     
     def get_extended_subjects(self):
         return self.__get_extended_sent_part("subj")
-
+    # get the objects
     def get_objects(self):
         return self.__get_sent_part("obj")
     
     def get_extended_objects(self):
         return self.__get_extended_sent_part("obj")
-
+    # get the verbs
     def get_verbs(self):
         return self.__get_sent_part("ROOT")
     
@@ -60,8 +63,9 @@ class Tagger:
         Returns a tuple (str, str) of the word and the predicted POS tag
         '''
         return self.nlp(w)[0].pos_
-
+# Defining the class Predicter with functions to predict the sentence out of the word and/or the POS tag
 class Predicter:
+    # get the POS tags for the words in the corpus
     def __init__(self, text):
         self.text = text
         self.tagger = Tagger(self.text)
@@ -80,7 +84,7 @@ class Predicter:
             factor = 1 / probs.sum()
 
             return factor * probs
-
+    
     def __pred_svo(self, feature):
         word, pos = feature
 
