@@ -17,12 +17,29 @@
     <title>Document</title>
 </head>
 <body>
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %} {% for category, message in messages %} {% if category ==
+    'error' %}
+    <div class="alert alert-danger alter-dismissable fade show" role="alert">
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    {% else %}
+    <div class="alert alert-success alter-dismissable fade show" role="alert">
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    {% endif %} {% endfor %} {% endif %} {% endwith %}
     <div class="container">
         <h1>Here comes everything</h1>
         <form action="" method="post">
             <div class="form-group">
-                <label for="word">Key word</label>
-                <input type="text" class="form-control" id="word" name="word">
+                <label for="key_word">Key word</label>
+                <input type="text" class="form-control" id="key_word" name="key_word">
             </div>
 
             <div class="form-group">
@@ -30,9 +47,15 @@
                 <input type="text" class="form-control" id="pos" name="pos">
             </div>
             <br>
-            <button type="submit" class="btn btn-primary">Submit</button>
+            <button type="submit" class="btn btn-primary">Give me my sentence</button>
         </form>
-
+        {% if show %}
+        <br>
+        <div>
+            <h2>The generated sentence</h2>
+            <p>{{ sentence }}</p>
+        </div>
+        {% endif %}
     </div>
 
     <script
