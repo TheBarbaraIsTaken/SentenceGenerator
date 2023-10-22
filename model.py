@@ -63,6 +63,7 @@ class Tagger:
         Returns a tuple (str, str) of the word and the predicted POS tag
         '''
         return self.nlp(w)[0].pos_
+
 # Defining the class Predicter with functions to predict the sentence out of the word and/or the POS tag
 class Predicter:
     # get the POS tags for the words in the corpus
