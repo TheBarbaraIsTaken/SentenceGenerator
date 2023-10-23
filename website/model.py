@@ -6,23 +6,24 @@ from collections import Counter
 import numpy as np
 
 class Tagger:
-    def __init__(self, text):
+    def __init__(self, text, stem):
         self.text = text.lower()
         self.sentences = sent_tokenize(self.text)
+
+        self.ps = PorterStemmer()
 
         self.nlp = spacy.load('en_core_web_sm')
         # nltk.download('stopwords')
         self.docs = [self.nlp(sentence) for sentence in self.sentences]
 
         ## Full vocabulary with fequences
-        self.vocab = self.__get_vocab(stem=False) 
+        self.vocab = self.__get_vocab(stem=stem)
 
     def __get_vocab(self, stem=True):
         words = [(token.text, token.pos_) for doc in self.docs for token in doc if token.pos_ != 'SPACE' and token.pos_ != 'PUNCT']
 
         if stem:
-            ps = PorterStemmer()
-            words = [(ps.stem(w), t) for w, t in words]
+            words = [(self.ps.stem(w), t) for w, t in words]
 
         return Counter(words)
 
@@ -60,11 +61,15 @@ class Tagger:
         Returns a tuple (str, str) of the word and the predicted POS tag
         '''
         return self.nlp(w)[0].pos_
+    
+    def stem_word(self, w):
+        return self.ps.stem(w)
 
 class Predicter:
-    def __init__(self, text):
+    def __init__(self, text, stem):
         self.text = text
-        self.tagger = Tagger(self.text)
+        self.stem = stem
+        self.tagger = Tagger(self.text, stem=self.stem)
 
         # TODO: Or use the extended version instead?
         self.S = Counter(self.tagger.get_subjects())
@@ -112,7 +117,12 @@ class Predicter:
 
     def pred_sent(self, feature):
         word, pos = feature
-        given_tag = self.__pred_svo(feature)
+        word = word.lower()
+
+        if self.stem:
+            word = self.tagger.stem_word(word)
+
+        given_tag = self.__pred_svo((word, pos))
 
         # TODO: Use embeddings or something to predict the remaining words.
         # TODO: Add determiners at least.
