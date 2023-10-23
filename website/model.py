@@ -84,8 +84,13 @@ class Predicter:
     
     def __normalize(self, probs):
             probs = np.asarray(list(probs))
-            factor = 1 / probs.sum()
 
+            ## In case of all zero values
+            if not np.any(probs):
+                return probs
+
+            factor = 1 / probs.sum()
+            
             return factor * probs
 
     def __pred_svo(self, feature):
@@ -105,10 +110,7 @@ class Predicter:
             if smoothing:
                 v = sum(self.tagger.vocab.values())
 
-                if (c_total + v):
-                    return (c_svo + 1) / (c_total + v)
-                else:
-                    return 0
+                return (c_svo + 1) / (c_total + v)
             else:
                 if c_total:
                     return c_svo / c_total
@@ -116,10 +118,13 @@ class Predicter:
                     return 0
 
         probabilies = self.__normalize([prob(svo) for svo in self.SVOs])
+        print(probabilies)
 
-        if not probabilies.max():
-            n = len(probabilies)
-            probabilies = np.repeat(1/n, n)
+        if not np.any(probabilies):
+            if pos == "VERB":
+                return "verb"
+            else:
+                probabilies = np.asarray([0.5, 0, 0.5])
 
         return np.random.choice(self.tags, size=1, p=probabilies)[0]
     
