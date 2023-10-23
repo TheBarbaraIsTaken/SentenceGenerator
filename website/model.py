@@ -4,6 +4,8 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from collections import Counter
 import numpy as np
+import gensim.downloader as api
+from gensim.models.word2vec import LineSentence, Word2Vec # TODO: train on the same model as the corpus used
 
 class Tagger:
     def __init__(self, text, stem):
@@ -66,7 +68,7 @@ class Tagger:
         return self.ps.stem(w)
 
 class Predicter:
-    def __init__(self, text, stem):
+    def __init__(self, text, stem=False):
         self.text = text
         self.stem = stem
         self.tagger = Tagger(self.text, stem=self.stem)
@@ -95,21 +97,35 @@ class Predicter:
 
         def prob(svo):
             # TODO: Smoothing -> is it good for us? Handle <UNK> vs 'cat is a verb'
+            smoothing = False
+
             c_total = self.tagger.vocab[(word, pos)]
             c_svo = svo[(word, pos)]
 
-            v = sum(self.tagger.vocab.values())
+            if smoothing:
+                v = sum(self.tagger.vocab.values())
 
-            if (c_total + v):
-                return (c_svo + 1) / (c_total + v)
+                if (c_total + v):
+                    return (c_svo + 1) / (c_total + v)
+                else:
+                    return 0
             else:
-                return 0
+                if c_total:
+                    return c_svo / c_total
+                else:
+                    return 0
 
         probabilies = self.__normalize([prob(svo) for svo in self.SVOs])
+
+        if not probabilies.max():
+            n = len(probabilies)
+            probabilies = np.repeat(1/n, n)
 
         return np.random.choice(self.tags, size=1, p=probabilies)[0]
     
     def __pred_word(self, svo):
+        print(svo)
+
         p = self.__normalize(svo.values())
         words = [w for w,p in svo.keys()]
 

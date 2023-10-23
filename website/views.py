@@ -18,11 +18,9 @@ def home():
         elif len(key_word) < 2:
             flash('Key word must be greater than 1 character', category='error')
         else:
-            
-
             feature = (key_word, pos)
 
-            return render_template("home.html", sentence=predicter_model.pred_sent(feature), show=True)
+            return render_template("home.html", show=True, sentence=predicter_model.pred_sent(feature))
 
 
     return render_template("home.html", show=False)
