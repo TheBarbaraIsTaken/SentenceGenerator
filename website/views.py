@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, flash
-from .model import Predicter
+from . import predicter_model
 
 views = Blueprint('views', __name__)
 
@@ -18,24 +18,12 @@ def home():
         elif len(key_word) < 2:
             flash('Key word must be greater than 1 character', category='error')
         else:
-            text = load_corpus('')
-            model = Predicter(text, stem=False) ## Note: stemming is not a good idea because our sentences won't make any sense
+            
 
             feature = (key_word, pos)
 
-            return render_template("home.html", sentence=model.pred_sent(feature), show=True)
+            return render_template("home.html", sentence=predicter_model.pred_sent(feature), show=True)
 
 
     return render_template("home.html", show=False)
 
-
-def load_corpus(file_path):
-    sentences = """
-        The big black cat stared at the small dog. 
-        Jane watched her brother in the evenings.
-        Have you seen it?
-        I want a cat.
-        The new car was bought by me.
-    """
-
-    return sentences
