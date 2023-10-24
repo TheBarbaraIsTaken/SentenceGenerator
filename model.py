@@ -19,6 +19,7 @@ class Tagger:
 
         # Full vocabulary with frequences
         self.vocab = self.__get_vocab(stem=False) 
+
     # create a stemmed vocabulary list and return the number of words in it
     def __get_vocab(self, stem=True):
         words = [(token.text, token.pos_) for doc in self.docs for token in doc if token.pos_ != 'SPACE' and token.pos_ != 'PUNCT']
@@ -28,6 +29,7 @@ class Tagger:
             words = [(ps.stem(w), t) for w, t in words]
 
         return Counter(words)
+    
     # get the POS tag for a token
     def __get_sent_part(self, tag):
         return [(token.text, token.pos_) for doc in self.docs for token in doc if tag in token.dep_]
@@ -48,12 +50,14 @@ class Tagger:
     
     def get_extended_subjects(self):
         return self.__get_extended_sent_part("subj")
+    
     # get the objects
     def get_objects(self):
         return self.__get_sent_part("obj")
     
     def get_extended_objects(self):
         return self.__get_extended_sent_part("obj")
+    
     # get the verbs
     def get_verbs(self):
         return self.__get_sent_part("ROOT")
@@ -63,6 +67,23 @@ class Tagger:
         Returns a tuple (str, str) of the word and the predicted POS tag
         '''
         return self.nlp(w)[0].pos_
+    
+    # get the verb as composition to create auxilliary verbs etc.
+    def get_complete_verb(self):
+        verb_phrase = []
+    
+        for token in self.doc:
+            if token.pos_ == "VERB":
+                verb_phrase.append(token.text)
+                for compverb in token.compverbs:
+                    if compverb.dep_ in ("aux", "auxpass", "advmod", "amod"):
+                        verb_phrase.append(compverb.text)
+                    elif compverb.dep_ in ("dobj", "attr"):
+                        verb_phrase.append(compverb.text)
+
+        complete_verb = " ".join(verb_phrase)
+        return complete_verb
+
 
 # Defining the class Predicter with functions to predict the sentence out of the word and/or the POS tag
 class Predicter:
