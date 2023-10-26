@@ -53,6 +53,7 @@
                     <option value="num">NUM</option>
                     <option value="adj">ADJ</option>
                     <option value="adv">ADV</option>
+                </select>
             </div>
             <br>
             <button type="submit" class="btn btn-primary">Give me my sentence</button>
