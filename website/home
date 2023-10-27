@@ -67,6 +67,28 @@
         {% endif %}
     </div>
 
+    <script>
+        // Check if localStorage is supported by the browser
+        if (typeof(Storage) !== "undefined") {
+            // Get the form and input elements
+            var keywordInput = document.getElementById("key_word");
+            var posInput = document.getElementById("pos");
+
+            // Load saved values from localStorage when the page loads
+            keywordInput.value = localStorage.getItem("key_word") || "";
+            posInput.value = localStorage.getItem("pos") || "";
+
+            // Add a submit event listener to save the values to localStorage
+            dataForm.addEventListener("Give me my sentence", function(e) {
+                e.preventDefault();
+                localStorage.setItem("key_word", field1Input.value);
+                localStorage.setItem("pos", field2Input.value);
+                alert("Data saved!");
+            });
+        } else {
+            alert("The browser does not support web storage.");
+        }
+    </script>
     <script
       src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
       integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
