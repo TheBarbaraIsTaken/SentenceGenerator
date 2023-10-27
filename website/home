@@ -81,8 +81,8 @@
             // Add a submit event listener to save the values to localStorage
             dataForm.addEventListener("Give me my sentence", function(e) {
                 e.preventDefault();
-                localStorage.setItem("key_word", field1Input.value);
-                localStorage.setItem("pos", field2Input.value);
+                localStorage.setItem("key_word", keywordInput.value);
+                localStorage.setItem("pos", posInput.value);
                 alert("Data saved!");
             });
         } else {

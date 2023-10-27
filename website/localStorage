@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", function() {
         var posInput = document.querySelector(".form-group#pos");
 
         // Load saved values from localStorage when the page loads
-        keywordInputInput.value = localStorage.getItem("key_word") || "";
+        keywordInput.value = localStorage.getItem("key_word") || "";
         posInput.value = localStorage.getItem("pos") || "";
 
         // Add an event listener to save the values to localStorage
