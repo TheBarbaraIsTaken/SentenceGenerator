@@ -1,1 +1,7 @@
 website/__pycache__/
+Data/
+tester.ipynb
+*.model
+*.zip
+*.txt
+!requirements.txt

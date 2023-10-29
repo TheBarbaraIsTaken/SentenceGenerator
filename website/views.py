@@ -6,13 +6,14 @@ views = Blueprint('views', __name__)
 @views.route('/', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
-        # TODO: check if key_word and pos are set, key_word is requared, pos is nullable -> set it None
         key_word = request.form.get('key_word')
         pos = request.form.get('pos')
 
+        # POS: nullable
         if not pos:
             pos = None
 
+        # Key word: nullable
         if not key_word:
             flash('Key word must be given', category='error')
         elif len(key_word) < 2:

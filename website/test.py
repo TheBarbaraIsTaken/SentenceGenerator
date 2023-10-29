@@ -1,20 +1,30 @@
-from model import Predicter
+from model_parser import Predicter
+
 
 def load_corpus(file_path):
-    sentences = """
-        The big black cat stared at the small dog. 
-        Jane watched her brother in the evenings.
-        Have you seen it?
-        I want a cat.
-        The new car was bought by me.
-    """
+
+    if file_path:
+        with open(file_path, 'r') as f:
+            sentences = f.read()
+    else:
+        sentences = """
+            I have a cat.
+            She has a dog.
+        """
 
     return sentences
 
 if __name__ == "__main__":
-    text = load_corpus("")
+    # text = load_corpus("hp.txt")
+    conll_file = "../Data/UD_English-EWT/en_ewt-ud-test.conllu"
+    file = "hp.txt"
+    
+    model = Predicter(conll_file)  # Predicter("hp.txt", stem=False)
+    feature = ("joe", None)
 
-    model = Predicter(text, stem=False)
-    feature = ("Cat", None)
+    
+    
+    for i in range(10):
+        s = (model.pred_sent(feature))
+        print(s)
 
-    print(model.pred_sent(feature))
