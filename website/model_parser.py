@@ -3,7 +3,12 @@ import spacy
 import numpy as np
 from collections import Counter
 import gensim.downloader as api # For embeddings
-from . import dependency_parser as dp
+## Uncomment for web
+#from . import dependency_parser as dp
+## Uncomment for test
+import dependency_parser as dp
+from nltk.stem import PorterStemmer
+
 
 class Predicter:
     def __init__(self, f_path):
@@ -14,13 +19,15 @@ class Predicter:
 
         self.nlp = spacy.load("en_core_web_sm")
         self.w2v = api.load("word2vec-google-news-300")
+        self.ps = PorterStemmer()
 
         ## Precess corpus data
         self.f_path = f_path
         self.docs = dp.read_file(self.f_path)
 
         ## Compute vocabularies
-        self.S, self.O, self.vocab = self.__get_vocabs()
+        self.Ss, self.Os, self.vocab = self.__get_vocabs()
+        self.Vs, self.V_stems = self.__get_verbs()
 
         ## Compute co-occurence matrices
         self.sv_subject_dict, self.sv_verb_dict, self.sv_matrix = self.__get_sv_matrix()
@@ -116,6 +123,25 @@ class Predicter:
         
         return Counter(S), Counter(O), Counter(vocab)
     
+    def __get_verbs(self):
+        # V_stems: for each verb: key - stem of the root, value - text of verb phase
+        # Vs: list of every whole verb (list of tokens)
+        Vs = []
+        V_stems = {}
+
+        for doc in self.docs:
+            for token in doc:
+                if token["upostag"] in self.VERB_TAGS:
+                    verb_phase = dp.get_verb_phase(token, doc)
+                    Vs.append(verb_phase)
+
+                    stem = self.ps.stem(token["form"])
+                    
+                    if stem not in V_stems:
+                        V_stems[stem] = dp.get_text(verb_phase)
+
+        return Vs, V_stems
+
     def __normalize(self, probs):
             probs = np.asarray(list(probs))
 
@@ -150,7 +176,7 @@ class Predicter:
             else:
                 return 0
         
-        probabilies = self.__normalize([prob(svo) for svo in (self.S, self.O)])
+        probabilies = self.__normalize([prob(svo) for svo in (self.Ss, self.Os)])
 
         ## In case of all zero probabilities
         if not np.any(probabilies):
@@ -233,11 +259,101 @@ class Predicter:
             v_index = self.vo_verb_dict[V]
             return pred_o(v_index)
         else:
-            # TODO: Do some stemming or something if V is given
-            return "-1"
+            ## Get the stem of the root
+            root = self.ps.stem([token.text for token in self.nlp(V) if token.dep_ == "ROOT"][0])
 
+            if root in self.V_stems:
+                verb = self.V_stems[root]
+                v_index = self.vo_verb_dict[verb]
 
+                return pred_o(v_index)
+            elif root in self.w2v:
+                verb_stem = min(self.V_stems.keys(), key=lambda verb: self.cosine_similarity(root, verb))
+                verb_in_vocab = self.V_stems[verb_stem]
+
+                v_index = self.vo_verb_dict[verb_in_vocab]
+                return pred_o(v_index)
+            else:
+                return np.random.choice(list(self.vo_object_dict.keys()), size=1)[0]  # uniform
     
+    def __pred_vs(self, V):
+        v = V
+        def pred_s(v_index):
+            ## Use the maximum value
+            # s_index = np.argmax(self.sv_matrix[:, v_index])
+            # return list(self.sv_subject_dict.keys())[s_index]
+
+            ## Use probability
+            probabilies = self.__normalize(self.sv_matrix[:, v_index])
+
+            ## All zero probabilities
+            if not np.any(probabilies):
+                return np.random.choice(list(self.sv_subject_dict.keys()), size=1)[0]  # uniform
+
+            return np.random.choice(list(self.sv_subject_dict.keys()), size=1, p=probabilies)[0]
+
+        if v in self.sv_verb_dict:
+            v_index = self.sv_verb_dict[v]
+
+            return pred_s(v_index)
+        else:
+            if v in self.w2v:
+                return min(self.sv_subject_dict.keys(), key=lambda w: self.cosine_similarity(v, w))
+            else:
+                return np.random.choice(list(self.sv_subject_dict.keys()), size=1)[0]
+
+    def __pred_ov(self, O):
+        ## Extract the root of object
+        # TODO: test this
+        try:
+            o = [token.text for token in self.nlp(O) if token.dep_ == "ROOT"][0]
+        except IndexError:
+            o = str(O)
+
+        def pred_v(o_index):
+            ## Use the maximum value
+            # v_index = np.argmax(self.vo_matrix[:, o_index])
+            # return list(self.vo_verb_dict.keys())[v_index]
+
+            ## Use probability
+            probabilies = self.__normalize(self.vo_matrix[:, o_index])
+
+            ## All zero probabilities
+            if not np.any(probabilies):
+                return np.random.choice(list(self.vo_verb_dict.keys()), size=1)[0]  # uniform
+
+            return np.random.choice(list(self.vo_verb_dict.keys()), size=1, p=probabilies)[0]
+
+        # TODO: Make it more random with using probability for embeddings?
+        if o in self.vo_object_dict:
+            o_index = self.sv_subject_dict[o]
+            return pred_v(o_index)
+        else:
+            if o in self.w2v:
+                ## Get the most similar subject from vocabulary
+                o_in_vocab = min(self.vo_object_dict.keys(), key=lambda w: self.cosine_similarity(o, w))
+                o_index = self.vo_object_dict[o_in_vocab]
+
+                return pred_v(o_index)
+            else:
+                return np.random.choice(list(self.vo_verb_dict.keys()), size=1)[0]
+
+
+    def __extend_v(self, feautre):
+        word, pos = feautre
+
+        possible_verbs = []
+        for verb_phase in self.Vs:
+            for token in verb_phase:
+                ## NOTE: Not strict with verb forms. Inflections can be added.
+                if word in token["form"].lower() and pos == token["upostag"]:
+                    possible_verbs.append(dp.get_text(verb_phase))
+
+        if len(possible_verbs) != 0:
+            return np.random.choice(possible_verbs, size=1)[0]
+        else:
+            return word
+
     def pred_sent(self, feature):
         word, pos = feature
         
@@ -259,14 +375,35 @@ class Predicter:
             V = self.__pred_sv(S)
             O = self.__pred_vo(V)
 
-            if O is None:
-                svo = (S, V)
-            else:
-                svo = (S, V, O)
+            # TODO: extend object
+        elif given_svo == "verb":
+            V = self.__extend_v((word, pos))
+
+            ## Use co-occurence matrix and embeddings to predict V and O
+            ## Use random choice to predict for unkown embedding
+            S = self.__pred_vs(V)
+            O = self.__pred_vo(V)
+
+            # TODO: extend object and subject
         else:
-            return given_svo
+            # TODO: extend object
+            O = word
+
+            ## Use co-occurence matrix and embeddings to predict V and O
+            ## Use random choice to predict for unkown embedding
+            V = self.__pred_ov(O)
+            S = self.__pred_vs(V)
+
+            # TODO: extend subject
+        
+
+        if O is None:
+            svo = (S, V)
+        else:
+            svo = (S, V, O)
         
         sent = " ".join(svo)
+        print(given_svo)
         return sent.capitalize() + "."
 
 
