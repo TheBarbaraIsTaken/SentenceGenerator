@@ -17,14 +17,14 @@ class Predicter:
 
         ## Precess corpus data
         self.f_path = f_path
-        self.docs = dp.read_file(f_path)
+        self.docs = dp.read_file(self.f_path)
 
         ## Compute vocabularies
         self.S, self.O, self.vocab = self.__get_vocabs()
 
         ## Compute co-occurence matrices
         self.sv_subject_dict, self.sv_verb_dict, self.sv_matrix = self.__get_sv_matrix()
-        #self.vo_verb_dict, self.vo_object_dict, self.vo_matrix = self.__get_vo_matrix()
+        self.vo_verb_dict, self.vo_object_dict, self.vo_matrix = self.__get_vo_matrix()
 
 
         print("Initialization is ready")
@@ -67,7 +67,7 @@ class Predicter:
         # Loop over docs and build the (verb, object) pairs and dictionaries
         pairs = []
         for doc in self.docs:
-            verb_object_pairs = self.__get_verb_object_pairs(doc)
+            verb_object_pairs = dp.extract_verb_object_pairs(doc)
             pairs.extend(verb_object_pairs)
 
             for verb, object in verb_object_pairs:
@@ -101,19 +101,18 @@ class Predicter:
                     vocab.append((token["form"].lower(), token["upostag"]))
 
                     ## Add to subjects
-                    if token["deprel"] == "nsubj":
+                    if "subj" in token["deprel"]:
                         subject = dp.get_subject_phrase(token, doc)
 
                         for subject_token in subject:
                             S.append((subject_token["form"].lower(), subject_token["upostag"]))
                     
                     ## Add to objects
-                    # TODO
-                    if token["deprel"] == "OBJ":
-                        object = self.__get_subtree(token, doc)
+                    if "obj" in token["deprel"]:
+                        object = dp.get_object_phrase(token, doc)
 
                         for object_token in object:
-                            O.append((object_token.text.lower(), object_token.pos_))
+                            O.append((object_token["form"].lower(), object_token["upostag"]))
         
         return Counter(S), Counter(O), Counter(vocab)
     
@@ -218,8 +217,8 @@ class Predicter:
     def __pred_vo(self, V):
         def pred_o(v_index):
             ## Use the maximum value
-            o_index = np.argmax(self.vo_matrix[v_index, :])
-            return list(self.vo_object_dict.keys())[o_index]
+            #o_index = np.argmax(self.vo_matrix[v_index, :])
+            #return list(self.vo_object_dict.keys())[o_index]
 
             ## Use probability
             probabilies = self.__normalize(self.vo_matrix[v_index, :])
@@ -258,8 +257,7 @@ class Predicter:
             ## Use co-occurence matrix and embeddings to predict V and O
             ## Use random choice to predict for unkown embedding
             V = self.__pred_sv(S)
-            #O = self.__pred_vo(V)
-            O = None
+            O = self.__pred_vo(V)
 
             if O is None:
                 svo = (S, V)

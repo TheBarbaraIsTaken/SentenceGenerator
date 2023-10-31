@@ -1,5 +1,5 @@
 from flask import Flask
-from .model import Predicter
+from .model_parser import Predicter
 import os
 
 
