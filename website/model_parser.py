@@ -3,7 +3,7 @@ import spacy
 import numpy as np
 from collections import Counter
 import gensim.downloader as api # For embeddings
-import dependency_parser as dp
+from . import dependency_parser as dp
 
 class Predicter:
     def __init__(self, f_path):
