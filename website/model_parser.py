@@ -4,9 +4,9 @@ import numpy as np
 from collections import Counter
 import gensim.downloader as api # For embeddings
 ## Uncomment for web
-from . import dependency_parser as dp
+#from . import dependency_parser as dp
 ## Uncomment for test
-#import dependency_parser as dp
+import dependency_parser as dp
 from nltk.stem import PorterStemmer
 
 
