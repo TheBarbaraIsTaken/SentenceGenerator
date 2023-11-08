@@ -59,7 +59,7 @@ def get_subject(verb, sentence):
     ## Find the subject of the verb by looking for a nominal subject (nsubj)
     for token in sentence:
         if token["head"] == verb["id"] and token["deprel"] == "nsubj":
-            subject = token["form"].lower()
+            subject = (token["form"].lower(), token["upostag"])
             break
     
     return subject
@@ -89,7 +89,7 @@ def get_object(verb, sentence):
     obj = None
     for token in sentence:
         if token['head'] == verb['id'] and token['deprel'] in {'obj', 'iobj'}:
-            obj = token['form'].lower()
+            obj = (token['form'].lower(), token["upostag"])
             break
     
     return obj

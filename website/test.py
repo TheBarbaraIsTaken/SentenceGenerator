@@ -20,7 +20,7 @@ if __name__ == "__main__":
     file = "hp.txt"
     
     model = Predicter(conll_file)  # Predicter("hp.txt", stem=False)
-    feature = ("it", None)
+    feature = ("cat", None)
     
     
     for i in range(10):
