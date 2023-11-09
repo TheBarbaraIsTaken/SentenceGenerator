@@ -21,7 +21,10 @@ def load_corpus(file_path):
 
 text = load_corpus('') # hp.txt
 #predicter_model = Predicter(text, stem=False) ## Note: stemming is not a good idea because our sentences won't make any sense
-predicter_model = Predicter("../Data/UD_English-EWT/en_ewt-ud-test.conllu")
+path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+data = "Data/UD_English-EWT/en_ewt-ud-test.conllu"
+data_path = os.path.join(path, data)
+predicter_model = Predicter(data_path)
 
 def create_app():
     app = Flask(__name__)

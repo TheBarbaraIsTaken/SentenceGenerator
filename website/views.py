@@ -10,9 +10,12 @@ def home():
         pos = request.form.get('pos')
 
         # POS: nullable
-        if not pos:
+        if not pos or pos == "NONE":
             pos = None
 
+        print(pos)
+
+        """
         # Key word: nullable
         if not key_word:
             flash('Key word must be given', category='error')
@@ -21,7 +24,7 @@ def home():
         else:
             feature = (key_word, pos)
 
-            return render_template("home.html", show=True, sentence=predicter_model.pred_sent(feature))
+            return render_template("home.html", show=True, sentence=predicter_model.pred_sent(feature))"""
 
 
     return render_template("home.html", show=False)

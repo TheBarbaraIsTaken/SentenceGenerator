@@ -43,8 +43,16 @@
             </div>
 
             <div class="form-group">
-                <label for="word">Part of Speech Tag</label>
-                <input type="text" class="form-control" id="pos" name="pos">
+              <label for="word">Part of Speech Tag</label>
+              <select class="form-control" name="pos" id="pos">
+                  <option value="VERB">VERB</option>
+                  <option value="PROPN">PROPN</option>
+                  <option value="NOUN">NOUN</option>
+                  <option value="PRON">PRON</option>
+                  <option value="ADJ">ADJ</option>
+                  <option value="DET">DET</option>
+                  <option value="NONE">None</option>
+                </select>
             </div>
             <br>
             <button type="submit" class="btn btn-primary">Give me my sentence</button>
