@@ -686,6 +686,9 @@ class Predicter:
             except KeyError:
                 return -1
         word, pos = feature
+        if word is None:
+            return None
+        
         if pos is None:
             pos = self.pred_pos(word)
         
@@ -738,7 +741,7 @@ class Predicter:
         given_svo = self.pred_svo((word, pos))
 
         if given_svo == "subj":
-            # Extend subject
+            ## Extend subject
             S = str(self.__extend_so_hmm((word, pos)))
             
             ## Use co-occurence matrix and embeddings to predict V and O
@@ -746,7 +749,7 @@ class Predicter:
             V = str(self.__pred_sv(S))
             O = (self.__pred_vo(V))
 
-            # TODO: extend object
+            ## Extend object
             
             if O is not None:
                 O = str(self.__extend_so_hmm((O, None)))
@@ -759,12 +762,12 @@ class Predicter:
             S = str(self.__pred_vs(V))
             O = (self.__pred_vo(V))
 
-            # TODO: extend object and subject
+            ## Extend object and subject
             S = self.__extend_so_hmm((S, None))
             if O is not None:
                 O = str(self.__extend_so_hmm(O, None))
         else:
-            # TODO: extend object
+            ## Extend object
             O = str(self.__extend_so_hmm((word, pos)))
             #O = word
 
@@ -773,7 +776,7 @@ class Predicter:
             V = str(self.__pred_ov(O))
             S = str(self.__pred_vs(V))
 
-            # TODO: extend subject
+            ## Extend subject
             S = self.__extend_so_hmm((S, None))
 
         if O is None:
