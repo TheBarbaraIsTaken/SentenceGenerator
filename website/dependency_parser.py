@@ -70,6 +70,14 @@ def get_subject_phrase(token, sentence):
     
     return get_subtree(token, sentence)
 
+def get_all_adj(sentences):
+    adj_set = set()
+    for sentence in sentences:
+        for token in sentence:
+            if token["upostag"] == "ADJ":
+                adj_set.add(token["form"])
+    return adj_set
+
 def get_verb_phase(token, sentence):
     children = get_children(token, sentence)
     

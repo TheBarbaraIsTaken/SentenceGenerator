@@ -39,9 +39,41 @@ class Predicter:
 
         ## Compute co-occurence matrices for extending subjects and objects
         ## add-k smoothing
-        self.subject_ngram, self.object_ngram = self.__get_ngrams(k=0.2)
+        #self.subject_ngram, self.object_ngram = self.__get_ngrams(k=0.001)
+
+        ## HMM?
+        self.hmm_pos = ["NOUN", "DET", "Acc", "Gen", "Nom", "ADJ", "PROPN", None]
+        self.hmm_tags = dict(zip(self.hmm_pos, range(len(self.hmm_pos))))
+        self.hmm_matrix = np.asarray([
+            [0,   0,   0,   0,   0,   0,   0,   1  ],
+            [0.5, 0,   0,   0,   0,   0.5, 0,   0  ],
+            [0,   0,   0,   0,   0,   0,   0,   1  ],
+            [0.5, 0,   0,   0,   0,   0.5, 0,   0  ],
+            [0,   0,   0,   0,   0,   0,   0,   1  ],
+            [0.7, 0,   0,   0,   0,   0.3, 0,   0  ],
+            [0,   0,   0,   0,   0,   0,   0,   1  ],
+            [0,   1,   1,   1,   1,   0,   1,   1  ],
+        ])
+        self.tag_probs, self.hmm_words = self.get_tag_probs()
 
         print("Initialization is ready")
+
+    def get_tag_probs(self):
+        self.words = [w for w,_ in self.vocab_hmm.keys()]
+        hmm_words = dict([(w, i) for i,w in enumerate(self.words)])
+
+        #hmm_words = dict(zip(words, range(len(words))))
+        counts = np.zeros((len(self.hmm_tags), len(self.words)))
+        #print(len(hmm_words), len(hmm_words), counts.shape)
+
+        for w,p in self.vocab_hmm.keys():
+            if p in self.hmm_tags:
+                r = self.hmm_tags[p]
+                c = hmm_words[w]
+
+                counts[r, c] += self.vocab_hmm[(w,p)]
+
+        return counts, hmm_words
 
     def __get_sv_matrix(self):
         ## Initialize empty dictionaries for subjects and verbs
@@ -131,6 +163,7 @@ class Predicter:
         S = []
         O = []
         vocab = []
+        vocab_hmm = []
         subject_phrases = []
         object_phrases = []
         subject_dict = {}
@@ -141,6 +174,12 @@ class Predicter:
                 if token["upostag"] not in self.SKIP_TAGS:
                     ## Add to vocabulary 
                     vocab.append((token["form"].lower(), token["upostag"]))
+                    if token["upostag"] == "PRON":
+                        if token["feats"] is not None and 'Case' in token["feats"]:
+                            vocab_hmm.append((token["form"].lower(), token["feats"]["Case"]))
+                    else:
+                        vocab_hmm.append((token["form"].lower(), token["upostag"]))
+                        
 
                     ## Add to subjects
                     if "subj" in token["deprel"]:
@@ -150,7 +189,8 @@ class Predicter:
                         for subject_token in subject:
                             feature = (subject_token["form"].lower(), subject_token["upostag"])
                             
-                            S.append(feature)
+                            if not (len(subject) > 4):
+                                S.append(feature)
 
                             if feature not in subject_dict:
                                 subject_dict[feature] = len(subject_dict)
@@ -163,7 +203,9 @@ class Predicter:
 
                         for object_token in object:
                             feature = (object_token["form"].lower(), object_token["upostag"])
-                            O.append(feature)
+
+                            if not (len(object) > 4):
+                                O.append(feature)
 
                             if feature not in object_dict:
                                 object_dict[feature] = len(object_dict)
@@ -174,6 +216,8 @@ class Predicter:
 
         object_dict[("<START>", None)] = len(object_dict)
         object_dict[("<END>", None)] = len(object_dict)
+
+        self.vocab_hmm = Counter(vocab_hmm)
 
         return (Counter(S), Counter(O), Counter(vocab)), (subject_phrases, object_phrases), (subject_dict, object_dict)
     
@@ -204,6 +248,9 @@ class Predicter:
         subject_ngramm = np.zeros((num_subjects, num_subjects))
 
         for subject in self.subject_phrases:
+            if len(subject) > 4:
+                continue
+
             last_index = len(subject) - 1
 
             if len(subject):
@@ -233,12 +280,19 @@ class Predicter:
 
         ## Smoothing
         subject_ngramm += k
-        
+        start = self.subject_dict[("<START>", None)]
+        end = self.subject_dict[("<END>", None)]
+        subject_ngramm[start, :] += 0.5
+        subject_ngramm[:, end] += 0.5
+
         ## Objects
         num_ojects = len(self.object_dict)
         object_ngramm = np.zeros((num_ojects, num_ojects))
 
         for object in self.object_phrases:
+            if len(object) > 4:
+                continue
+
             last_index = len(object) - 1
 
             if len(object):
@@ -265,9 +319,14 @@ class Predicter:
                     c = self.object_dict[(next_word, next_pos)]
                 
                 object_ngramm[r,c] += 1
+                
         
         ## Smoothing
         object_ngramm += k
+        start = self.object_dict[("<START>", None)]
+        end = self.object_dict[("<END>", None)]
+        object_ngramm[start, :] += 1
+        object_ngramm[:, end] += 1
 
         return subject_ngramm, object_ngramm
 
@@ -276,7 +335,7 @@ class Predicter:
 
             ## In case of all zero values
             if not np.any(probs):
-                return probs
+                return np.asarray([1/len(probs) for _ in probs])
             
             factor = 1 / probs.sum()
             
@@ -334,7 +393,7 @@ class Predicter:
         ## Extract the root of subject
         # TODO: test this
         try:
-            s = [token.text for token in self.nlp(S) if token.dep_ == "ROOT"][0]
+            s = str([token.text for token in self.nlp(S) if token.dep_ == "ROOT"][0])
         except IndexError:
             s = str(S)
 
@@ -437,7 +496,7 @@ class Predicter:
         ## Extract the root of object
         # TODO: test this
         try:
-            o = [token.text for token in self.nlp(O) if token.dep_ == "ROOT"][0]
+            o = str([token.text for token in self.nlp(O) if token.dep_ == "ROOT"][0])
         except IndexError:
             o = str(O)
 
@@ -457,7 +516,7 @@ class Predicter:
 
         # TODO: Make it more random with using probability for embeddings?
         if o in self.vo_object_dict:
-            o_index = self.sv_subject_dict[o]
+            o_index = self.vo_object_dict[o]
             return pred_v(o_index)
         else:
             if o in self.w2v:
@@ -489,7 +548,7 @@ class Predicter:
         words = list(self.subject_dict.keys())
         if pos is None:
             pos = self.pred_pos(word)
-        phrase = []
+        phase = []
 
         def get_index(feature):
             if feature in self.subject_dict:
@@ -516,12 +575,12 @@ class Predicter:
             inx = np.random.choice(len(words), size=1, p=probabilities)[0]
             inx = np.argmax(probabilities)
             temp = words[inx]
-            phrase.append(temp[0])
+            phase.append(temp[0])
             max_width -= 1
 
-        phrase = phrase[::-1]
+        phase = phase[::-1]
 
-        phrase.append(word)
+        phase.append(word)
 
         ## Predict words after
         temp = (word, pos)
@@ -534,10 +593,139 @@ class Predicter:
             inx = np.random.choice(len(words), size=1, p=probabilities)[0]
             inx = np.argmax(probabilities)
             temp = words[inx]
-            phrase.append(temp[0])
+            phase.append(temp[0])
             max_width -= 1
         
-        return " ".join(phrase)
+        ## Remove additional tokens
+        if phase[0] == "<START>":
+            phase = phase[1:]
+
+        if phase[-1] == "<END>":
+            phase = phase[:-1]
+
+        return " ".join(phase)
+    
+    def __extend_o(self, feature):
+        word, pos = feature
+        words = list(self.object_dict.keys())
+        if pos is None:
+            pos = self.pred_pos(word)
+        phase = []
+
+        def get_index(feature):
+            if feature in self.object_dict:
+                inx = self.object_dict[feature]
+            else:
+                same_pos_words = [w for w, p in self.object_dict.keys() if p == pos]
+                if word in self.w2v:
+                    word_in_vocab = min(same_pos_words, key=lambda w: self.cosine_similarity(w, word))
+                    inx = self.object_dict[(word_in_vocab, pos)]
+                else:
+                    random_word = np.random.choice(same_pos_words, size=1)[0]
+                    inx = self.object_dict[(random_word, pos)]
+
+            return inx
+        
+        ## Predict words before
+        temp = (word, pos)
+        max_width = 3
+        while temp[0] != "<START>" and max_width > 0:
+            c = get_index(temp)
+            column = self.object_ngram[:, c]
+
+            probabilities = column/column.sum()
+            inx = np.random.choice(len(words), size=1, p=probabilities)[0]
+            inx = np.argmax(probabilities)
+            temp = words[inx]
+            phase.append(temp[0])
+            max_width -= 1
+
+        phase = phase[::-1]
+
+        phase.append(word)
+
+        ## Predict words after
+        temp = (word, pos)
+        max_width = 3
+        while temp[0] != "<END>" and max_width > 0:
+            r = get_index(temp)
+            row = self.object_ngram[r, :]
+
+            probabilities = row/row.sum()
+            inx = np.random.choice(len(words), size=1, p=probabilities)[0]
+            inx = np.argmax(probabilities)
+            temp = words[inx]
+            phase.append(temp[0])
+            max_width -= 1
+        
+        ## Remove additional tokens
+        if phase[0] == "<START>":
+            phase = phase[1:]
+
+        if phase[-1] == "<END>":
+            phase = phase[:-1]
+
+        return " ".join(phase)
+
+    def give_a_pos(self, word, pos):        
+        if pos in self.hmm_pos:
+            return pos
+        else:
+            for w,p in self.vocab_hmm.keys():
+                if w == word:
+                    return p
+                
+            return 'Nom'
+
+    def __extend_so_hmm(self, feature):
+        def cosine_similarity(w, target):
+            try:
+                vec1 = self.w2v[w]
+                vec2 = self.w2v[target]
+                return vec1.dot(vec2)/(np.linalg.norm(vec1)*np.linalg.norm(vec2))
+            except KeyError:
+                return -1
+        word, pos = feature
+        if pos is None:
+            pos = self.pred_pos(word)
+        
+        pos = self.give_a_pos(word, pos)
+
+        phase = []
+
+        inx = self.hmm_tags[pos]
+        temp_word = word
+        temp_pos = np.random.choice(list(self.hmm_tags.keys()), p=self.__normalize(self.hmm_matrix[:, inx]))
+        while temp_pos is not None:
+            inx = self.hmm_tags[temp_pos]
+
+            probs = (self.tag_probs[inx, :] * np.asarray([cosine_similarity(temp_word, w) for w in self.words]))
+            probs[probs<0] = 0
+            probs = self.__normalize(probs)
+            temp_word = np.random.choice((self.words), p=probs)
+            phase.append(temp_word)
+
+            temp_pos = np.random.choice(list(self.hmm_tags.keys()), p=self.__normalize(self.hmm_matrix[:, inx]))
+
+        phase = phase[::-1]
+
+        phase.append(word)
+
+        inx = self.hmm_tags[pos]
+        temp_word = word
+        temp_pos = np.random.choice(list(self.hmm_tags.keys()), p=self.__normalize(self.hmm_matrix[inx, :]))
+        while temp_pos is not None:
+            inx = self.hmm_tags[temp_pos]
+            
+            probs = (self.tag_probs[inx, :] * np.asarray([cosine_similarity(temp_word, w) for w in self.words]))
+            probs[probs<0] = 0
+            probs = self.__normalize(probs)
+            temp_word = np.random.choice((self.words), p=probs)
+            phase.append(temp_word)
+
+            temp_pos = np.random.choice(list(self.hmm_tags.keys()), p=self.__normalize(self.hmm_matrix[inx, :]))
+
+        return " ".join(phase)
 
     def pred_sent(self, feature):
         word, pos = feature
@@ -550,39 +738,43 @@ class Predicter:
         given_svo = self.pred_svo((word, pos))
 
         if given_svo == "subj":
-            # TODO: Extend subject
-            S = word
-            if pos == 'NOUN':
-                S = "the " + word
-            # S = str(self.__extend_s((word, pos)))  # NOPE
+            # Extend subject
+            S = str(self.__extend_so_hmm((word, pos)))
             
             ## Use co-occurence matrix and embeddings to predict V and O
             ## Use random choice to predict for unkown embedding
-            V = (self.__pred_sv(S))
+            V = str(self.__pred_sv(S))
             O = (self.__pred_vo(V))
 
             # TODO: extend object
+            
+            if O is not None:
+                O = str(self.__extend_so_hmm((O, None)))
+            
         elif given_svo == "verb":
-            V = (self.__extend_v((word, pos)))
+            V = str(self.__extend_v((word, pos)))
 
             ## Use co-occurence matrix and embeddings to predict V and O
             ## Use random choice to predict for unkown embedding
-            S = (self.__pred_vs(V))
+            S = str(self.__pred_vs(V))
             O = (self.__pred_vo(V))
 
             # TODO: extend object and subject
-            # S = self.__extend_s((S, None))  # NOPE
+            S = self.__extend_so_hmm((S, None))
+            if O is not None:
+                O = str(self.__extend_so_hmm(O, None))
         else:
             # TODO: extend object
-            O = word
+            O = str(self.__extend_so_hmm((word, pos)))
+            #O = word
 
             ## Use co-occurence matrix and embeddings to predict V and O
             ## Use random choice to predict for unkown embedding
-            V = (self.__pred_ov(O))
-            S = (self.__pred_vs(V))
+            V = str(self.__pred_ov(O))
+            S = str(self.__pred_vs(V))
 
             # TODO: extend subject
-        
+            S = self.__extend_so_hmm((S, None))
 
         if O is None:
             svo = (S, V)
