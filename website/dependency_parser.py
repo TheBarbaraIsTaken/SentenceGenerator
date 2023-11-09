@@ -58,7 +58,7 @@ def get_subject(verb, sentence):
 
     ## Find the subject of the verb by looking for a nominal subject (nsubj)
     for token in sentence:
-        if token["head"] == verb["id"] and token["deprel"] == "nsubj":
+        if token["head"] == verb["id"] and token["deprel"] == "nsubj" and token["upostag"] in {"NOUN", "DET", "PRON", "ADJ", "PROPN"}:
             subject = (token["form"].lower(), token["upostag"])
             break
     
@@ -96,7 +96,7 @@ def get_verb_phase(token, sentence):
 def get_object(verb, sentence):
     obj = None
     for token in sentence:
-        if token['head'] == verb['id'] and token['deprel'] in {'obj', 'iobj'}:
+        if token['head'] == verb['id'] and token['deprel'] in {'obj', 'iobj'} and token["upostag"] in {"NOUN", "DET", "PRON", "ADJ", "PROPN"}:
             obj = (token['form'].lower(), token["upostag"])
             break
     

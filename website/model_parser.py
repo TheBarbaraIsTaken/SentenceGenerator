@@ -4,9 +4,9 @@ import numpy as np
 from collections import Counter
 import gensim.downloader as api # For embeddings
 ## Uncomment for web
-from . import dependency_parser as dp
+#from . import dependency_parser as dp
 ## Uncomment for test
-#import dependency_parser as dp
+import dependency_parser as dp
 from nltk.stem import PorterStemmer
 
 
@@ -413,13 +413,13 @@ class Predicter:
 
         # TODO: Make it more random with using probability for embeddings?
         if s in self.sv_subject_dict:
-            print(s, "subject in vocabulary")
+            #print(s, "subject in vocabulary")
 
             s_index = self.sv_subject_dict[s]
             return pred_v(s_index)
         else:
             if s in self.w2v:
-                print(s, "subject in embeddings")
+                #print(s, "subject in embeddings")
 
                 ## Get the most similar subject from vocabulary
                 s_in_vocab = min(self.sv_subject_dict.keys(), key=lambda w: self.cosine_similarity(s, w))
@@ -427,7 +427,7 @@ class Predicter:
 
                 return pred_v(s_index)
             else:
-                print(s, "subject in unkown")
+                #print(s, "subject in unkown")
                 return np.random.choice(list(self.sv_verb_dict.keys()), size=1)[0]
 
     def __pred_vo(self, V):
@@ -672,7 +672,7 @@ class Predicter:
             return pos
         else:
             for w,p in self.vocab_hmm.keys():
-                if w == word:
+                if w == word and p in self.hmm_pos:
                     return p
                 
             return 'Nom'
@@ -785,6 +785,6 @@ class Predicter:
             svo = (S, V, O)
         
         sent = " ".join(svo)
-        print(given_svo)
+        #print(given_svo)
         return sent.capitalize() + "."
 
