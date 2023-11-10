@@ -3,3 +3,4 @@ numpy
 spacy
 nltk
 conllu
+gensim
