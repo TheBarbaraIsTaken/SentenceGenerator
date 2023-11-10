@@ -15,18 +15,6 @@ We think that with these given features, the model should be able to generate a 
 * How can we force our model to generate the sentence that contains a given word? 
 * Optional: Does the order of adverbs as well as the sentence order influence the performance of the model? 
 
-## Literature 
-
-In previous research, grammatical models have already been used to provide unsupervised parsing based on the linguistic notion of a constituency test. Therefore, a set of sentences will be transformed by adding words intentionally. Afterwards, these sentences shall be judges towards their grammatical correctness (Cao et al., 2020). 
-
-Sentence generation has been done quite frequently in the past with the help of Markov chains and hidden Markov models (Almutiri et al., 2022). Due to this information, we feel confident that this can be an approach to proceed further on with. 
-
-## Methods 
-
-1. Data preprocessing: tag the corpus with the respective SOV-tags (we couldn’t find a corpus pre-tagged with sentence part tags) 
-2. Calculate the most probable SOV and POS tag for every word with the help of hidden Markov models 
-3. Extend the model on test set 
-
 ## Datasets 
 
 * https://lindat.mff.cuni.cz/repository/xmlui/handle/11234/1-5150
@@ -36,3 +24,8 @@ Sentence generation has been done quite frequently in the past with the help of 
 Almutiri, T., & Nadeem, F. (2022). Markov models applications in natural language processing: a survey. Int. J. Inf. Technol. Comput. Sci, 2, 1-16. 
 Cao, S., Kitaev, N., & Klein, D. (2020). Unsupervised parsing via constituency tests. arXiv preprint arXiv:2010.03146. 
 
+## Setup and usage
+
+After downloading the code and installing the requirements you have to download the corpus from the link provided in the datesets, create a folder called "Data" in the root directory of the project and place there the UD_English-EWT folder.
+
+The program can be executed with the `main.py` command.
