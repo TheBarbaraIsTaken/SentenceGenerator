@@ -13,7 +13,6 @@ We think that with these given features, the model should be able to generate a 
 * How to identify the grammatical part in the sentence for the given word? 
 * How to make sure that the generated sentences actually make sense and are based on a continuous bag of words (CBOW)? 
 * How can we force our model to generate the sentence that contains a given word? 
-* How can we make our sentence richer by substituting one part with a subordinate clause? 
 * Optional: Does the order of adverbs as well as the sentence order influence the performance of the model? 
 
 ## Literature 
@@ -30,17 +29,10 @@ Sentence generation has been done quite frequently in the past with the help of 
 
 ## Datasets 
 
-* https://www.kaggle.com/datasets/constantinwerner/pos-tagged-questions-in-english 
-* https://lindat.mff.cuni.cz/repository/xmlui/handle/11234/1-3062 
-* https://lindat.mff.cuni.cz/repository/xmlui/handle/11234/1-3043 
-
-## Evaluation
-
-The plan is to evaluate the performance in terms accuracy in comparison to state of the art text generation. 
+* https://lindat.mff.cuni.cz/repository/xmlui/handle/11234/1-5150
 
 ## References 
 
 Almutiri, T., & Nadeem, F. (2022). Markov models applications in natural language processing: a survey. Int. J. Inf. Technol. Comput. Sci, 2, 1-16. 
-
 Cao, S., Kitaev, N., & Klein, D. (2020). Unsupervised parsing via constituency tests. arXiv preprint arXiv:2010.03146. 
 
